@@ -24,7 +24,7 @@ void EEPROMWriteAddressBytes(uint16 eepromAddress)
 }
 
 void EEPROMReadBytes(
-    byte * const buffer,
+    byte * buffer,
     int count,
     uint16 slaveAddress, 
     uint16 eepromAddress)

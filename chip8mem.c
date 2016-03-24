@@ -30,25 +30,14 @@ void Ch8MemSet(const byte value, int size, uint16 address)
     uint16 cSize = size;
     uint16 cOffset = 0;
     byte v [CH8_PAGE_SIZE];
-    memset(&v[0], value, CH8_PAGE_SIZE);
+    memset(&v, value, CH8_PAGE_SIZE);
     
     for (i = 0; i < size; i++)
     {
-        if (!(cAddress % CH8_PAGE_SIZE))
-        {
-            uint16 pageSize = min(cSize, CH8_PAGE_SIZE);
-            EEPROMReadBytes(&v[0], pageSize, SLAVE_ADDRESS, cAddress);
-            cAddress += pageSize;
-            cSize -= pageSize;
-            cOffset += pageSize;
-        }
-        else
-        {
-            EEPROMReadBytes(&v[0], 1, SLAVE_ADDRESS, cAddress);
-            cAddress++;
-            cSize--;
-            cOffset++;
-        }
+        EEPROMReadBytes(&v[0], 1, SLAVE_ADDRESS, cAddress);
+        cAddress++;
+        cSize--;
+        cOffset++;
     }
 }
 
@@ -112,28 +101,11 @@ void Ch8LoadRom(const Chip8Rom * chip8rom, const uint16 dstAddress)
     
     for (i = 0; i < chip8rom->size; i++)
     {
-        /* if the address starts on the page boundary, see if we can write a full page */
-        if (!(cAddress & CH8_PAGE_SIZE))
-        {
-            /* What is the max page size we can write */
-            uint16 pageSize = min(CH8_PAGE_SIZE, cSize);
-            
-            /* Write full page */
-            EEPROMReadBytes( &page[0], pageSize, 0, chip8rom->offset + cOffset);
-            EEPROMWriteBytes(&page[0], pageSize, 1, cAddress);
-            cAddress += pageSize;
-            cOffset += pageSize;
-            cSize -= pageSize;
-        }
-        else
-        {
-            /* If we are writing in the middle of a physical page, we must write single bytes */
             EEPROMReadBytes( &page[0], 1, 0, chip8rom->offset + cOffset);
             EEPROMWriteBytes(&page[0], 1, 1, cAddress);
             cAddress++;
             cOffset++;
             cSize--;
-        }
     }
     
     DEBUG_WRITE("Done");

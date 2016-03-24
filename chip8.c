@@ -10,10 +10,10 @@
 #define CHIP8_I2C
 
 byte g_Ch8VRegisters[16];
-uint16 g_Ch8IRegister;
-uint16 g_Ch8PCRegister;
-byte g_Ch8DelayRegister;
-byte g_Ch8AudioRegister;
+uint16 g_Ch8IRegister = 0;
+uint16 g_Ch8PCRegister = 0;
+byte g_Ch8DelayRegister = 0;
+byte g_Ch8AudioRegister = 0;
 byte g_Ch8LastKeyPress = 100;
 byte g_WaitForKey = 0;
 byte g_RplRegs[16];

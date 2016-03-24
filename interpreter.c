@@ -4,6 +4,7 @@
 #include "inst.h"
 #include <math.h>
 #include "chip8mem.h"
+#include "eeprom.h"
 #include <stdint.h>
 
 uint16 g_Stack[16];
@@ -113,8 +114,17 @@ void __inline__ OPCODE_LD(const INST inst, const byte value)
 void __inline__ OPCODE_ADD_OVERFLOW(const INST inst, const byte value, int overflowCheck)
 {
     uint16 result = X + value;
-    if (overflowCheck) FLAG = result > 0xFF; else FLAG = 0;
-    X = (byte)result;
+    
+    if (overflowCheck) 
+    {
+        FLAG = result > 0xFF; 
+    }
+    else
+    {
+        FLAG = 0;
+    }
+    
+    X = (byte)(result & 0xFF);
 }
 
 void __inline__ OPCODE_ADD(const INST inst, const byte value)
@@ -173,6 +183,8 @@ void __inline__ OPCODE_SHL(const INST inst)
 
 void __inline__ OPCODE_DRAW(const INST inst)
 {
+    FLAG = 0;
+    
 #if defined(GLCD) & !defined(INT_DEBUG)
     uint8_t x = X;
     uint8_t y = Y;
@@ -181,42 +193,29 @@ void __inline__ OPCODE_DRAW(const INST inst)
     uint8_t readPixel = 0;
     int yline = 0;
     int xline = 0;
-    uint8_t px = 0;
-    uint8_t py = 0;
     FLAG = 0;
     
     for (yline = 0; yline < height; yline++)
     {
-        pixel = Ch8MemReadByte(I + yline);
-        
+        /* Read the pixel data directly from EEPROM 1 */
+        EEPROMReadBytes(&pixel, 1, 1, I + yline);
         
         for (xline = 0; xline < 8; xline++)
         {
-#ifdef DRAW_WRAP_X
-            px = 10 + ((x + xline) & (64 - 1));
-#else
-            px = 10 + x + xline;
-#endif
-            
-#ifdef DRAW_WRAP_Y
-            py = 8 + ((y + yline) & (32 - 1));
-#else
-            py = 8 + y + yline;   
-#endif
-            
-            
-            if (pixel & (0x80 >> xline))
+            if (pixel & 0x80)
             {
-                readPixel = glcd_get_pixel(px, py);
+                readPixel = glcd_get_pixel(10 + ((x + xline) & 63), 8 + ((y + yline) & 31));
                 if (readPixel) FLAG = 1;
-                glcd_set_pixel(px, py, readPixel ^ 1);
+                glcd_set_pixel(10 + ((x + xline) & 63), 8 + ((y + yline) & 31), readPixel ^ 1);
             }
+            
+            pixel <<= 1;
         }
     }
     
     glcd_write();
-#else
-    Ch8MemReadByte(I);
+    
+    __delay_ms(2);
 #endif
 }
 
@@ -265,7 +264,7 @@ void Ch8Interpreter_ExecuteInst(void)
     /* Decode and execute, and write back */
 #ifdef INT_DEBUG
     debugWriteLcd = 1;
-    DEBUG_WRITE("%04X:%04X", PC - 2, inst.inst);
+    DEBUG_WRITE("%04X:%04X", PC - 2, op);
     __delay_ms(700);
 #endif
     
@@ -292,7 +291,7 @@ void Ch8Interpreter_ExecuteInst(void)
         case 0x9000: OPCODE_SNE(_X, _Y); break;
         case 0xA000: I = inst.nnn; break;
         case 0xB000: PC = inst.nnn + CH8_VREG[0]; break;
-        case 0xC000: _X = (byte)floor(rand() % 256);
+        case 0xC000: _X = ((byte)(rand() % 256) & inst.kk); break;
         case 0xD000: OPCODE_DRAW(&inst); break;
         case 0xE09E: OPCODE_SE(_X, g_Ch8LastKeyPress); break;
         case 0xE0A1: OPCODE_SNE(_X, g_Ch8LastKeyPress); break;

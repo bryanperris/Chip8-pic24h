@@ -13,12 +13,8 @@
 #include "eeprom.h"
 
 uint16 g_RomOffset;    
-Chip8Rom romFont;
-Chip8Rom romChip8;
-Chip8Rom romScTest;
-Chip8Rom romDemoMaze;
 
-Chip8Rom SetRom(char * name, uint16 size)
+Chip8Rom DefineRom(char * name, uint16 size)
 {
     Chip8Rom r;
     r.name = name;
@@ -31,11 +27,17 @@ Chip8Rom SetRom(char * name, uint16 size)
 /* Main program entry point */
 int main(void) 
 {
-    g_RomOffset = 0;
-    romFont   = SetRom( "Font",    80  );
-    romChip8  = SetRom( "Chip8",   164 );
-    romScTest = SetRom( "SC Test", 673 );
-    romDemoMaze = SetRom( "Maze",  35);
+    const Chip8Rom Roms[10] = {
+        DefineRom( "Font",    80  ),
+        DefineRom( "Chip8",   164 ),
+        DefineRom( "SC Test", 673 ),
+        DefineRom( "Maze",    35),
+        DefineRom( "Pong",    247),
+        DefineRom( "Simple",  86),
+        DefineRom( "JXO",     83),
+        DefineRom( "Space",   1302),
+        DefineRom( "Trip8",   3204)
+    };
     
     #if defined(GLCD)
         glcd_init();
@@ -48,10 +50,10 @@ int main(void)
     Ch8Init();
     
     /* Copy FONT into Chip8 Memory */
-    Ch8LoadRom(&romFont, CH8MEM_SYSRESERVED);
+    Ch8LoadRom(&Roms[0], CH8MEM_SYSRESERVED);
 
     /* Load test rom */
-    Ch8LoadRom(&romDemoMaze, CH8MEM_ENTRYPOINT);
+    Ch8LoadRom(&Roms[7], CH8MEM_ENTRYPOINT);
     
     delay_routine();
     delay_routine();
