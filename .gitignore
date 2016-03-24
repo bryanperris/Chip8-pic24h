@@ -1,0 +1,5 @@
+build/default/debug
+build/default/production
+dist/default/debug
+dist/default/production
+nbproject/private
