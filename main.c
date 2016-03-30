@@ -12,7 +12,14 @@
 #include "rom.h"
 #include "eeprom.h"
 
-uint16 g_RomOffset;    
+uint16 g_RomOffset;
+char __text[10];
+int menuLine = 0;
+
+#define MENU_WRITE(format, args...) \
+        sprintf(__text, format , ##args); \
+        glcd_tiny_draw_string(0, menuLine, &__text[0]); \
+        glcd_write();
 
 Chip8Rom DefineRom(char * name, uint16 size)
 {
@@ -27,8 +34,11 @@ Chip8Rom DefineRom(char * name, uint16 size)
 /* Main program entry point */
 int main(void) 
 {
-    const Chip8Rom Roms[10] = {
-        DefineRom( "Font",    80  ),
+    #define romSize 8
+
+    const Chip8Rom Font = DefineRom("Font", 80);
+    
+    const Chip8Rom Roms[romSize] = {
         DefineRom( "Chip8",   164 ),
         DefineRom( "SC Test", 673 ),
         DefineRom( "Maze",    35),
@@ -44,16 +54,78 @@ int main(void)
         GLCD_TEXT_INIT();
         glcd_clear_buffer();
     #endif
-   
+    
+    /* Scroll Down Button */
+    _LATB11 = 0;
+    _TRISB11 = 1;
+    _ODCB11 = 0;
+    _CN15PUE = 1;
+    
+    /* Start Button */
+    _LATB10 = 0;
+    _TRISB10 = 1;
+    _ODCB10 = 0;
+    _CN16PUE = 1;
+    
+    int romSelect = 0;
+    int offset = 0;
+    int i = 0;
+    int index = 1;
+    
+    while (1)
+    {
+        glcd_clear();
+        
+        for (i = 0; i < 6; i++)
+        {
+            index = offset + i;
+            menuLine = i;
+            
+            if (index < romSize)
+            {
+                if (index == romSelect) 
+                {
+                    MENU_WRITE("*%s", (&Roms[index])->name);
+                }
+                else
+                {
+                    MENU_WRITE(" %s", (&Roms[index])->name);
+                }
+            }
+            else
+            {
+                DEBUG_WRITE(" ******");
+            }
+        }
+        
+        /* Wait for button press */
+        while ( (PORTB & _PORTB_RB11_MASK) && (PORTB & _PORTB_RB10_MASK) );
+        
+        /* Start if this button has been pressed */
+        if (!(PORTB & _PORTB_RB10_MASK))
+        {
+            break;
+        }
+        
+        romSelect++;
+        if (romSelect > 5) offset++;
+        if (romSelect >= romSize) { offset = 0; romSelect = 0; }
+        
+        /* Wait for release */
+        while (!(PORTB & _PORTB_RB11_MASK));
+        
+    }
+    
+    glcd_clear();
     DEBUG_WRITE("Chip8 Start");
     
     Ch8Init();
     
     /* Copy FONT into Chip8 Memory */
-    Ch8LoadRom(&Roms[0], CH8MEM_SYSRESERVED);
+    Ch8LoadRom(&Font, CH8MEM_SYSRESERVED);
 
     /* Load test rom */
-    Ch8LoadRom(&Roms[7], CH8MEM_ENTRYPOINT);
+    Ch8LoadRom(&Roms[romSelect], CH8MEM_ENTRYPOINT);
     
     delay_routine();
     delay_routine();
