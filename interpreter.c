@@ -214,9 +214,49 @@ void __inline__ OPCODE_DRAW(const INST inst)
     }
     
     glcd_write();
-    
-    __delay_ms(2);
 #endif
+}
+
+unsigned int ComputePeroid(unsigned int frequency)
+{
+    return (unsigned int)((frequency * FCY) - 1);
+}
+
+void StartTimer1(int32 frequency) 
+{
+    T1CONbits.TON = 0;    /* Disable */
+    T1CONbits.TCS = 0;
+    T1CONbits.TCKPS = 0;
+    T1CONbits.TGATE = 0;
+    TMR1 = 0x00; // Clear timer register
+    PR1 = ComputePeroid(frequency); // Load the period value
+    IPC0bits.T1IP = 1;
+    IFS0bits.T1IF = 0; // Clear Timer2 Interrupt Flag
+    IEC0bits.T1IE = 1; // Enable Timer2 interrupt
+    T1CONbits.TON = 1;    /* Enable */
+}
+
+void StopTimer1()
+{
+    T1CONbits.TON = 0;
+    TMR1 = 0;
+}
+
+void __inline__ SetDelayTimer(byte value)
+{
+    g_Ch8DelayRegister = value;
+    StartTimer1(17);
+}
+
+void __attribute__((interrupt(auto_psv))) _T1Interrupt(void)
+{
+    if (g_Ch8DelayRegister > 0)
+        g_Ch8DelayRegister--;
+    else
+        StopTimer1();
+    
+    /* Clear the interrupt flag */
+    IFS0bits.T1IF = 0;
 }
 
 uint16 OpcodeMask(const Ch8Inst * inst)
@@ -297,8 +337,7 @@ void Ch8Interpreter_ExecuteInst(void)
         case 0xE0A1: OPCODE_SNE(_X, g_Ch8LastKeyPress); break;
         case 0xF007: OPCODE_LD(&inst, g_Ch8DelayRegister); break;
         case 0xF00A: while (!g_WaitForKey); OPCODE_LD(&inst, g_Ch8LastKeyPress); g_WaitForKey = 0; break;
-        //case 0xF015: g_Ch8DelayRegister = _X; break;
-        case 0xF015: __delay_ms(16.7);
+        case 0xF015: SetDelayTimer(_X); break;
         case 0xF018: g_Ch8AudioRegister = _Y; break;
         case 0xF01E: OPCODE_ADD_I(&inst, _X); break;
         case 0xF029: I = _X * 5; break;
