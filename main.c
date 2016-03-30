@@ -34,7 +34,7 @@ Chip8Rom DefineRom(char * name, uint16 size)
 /* Main program entry point */
 int main(void) 
 {
-    #define romSize 8
+    #define romSize 9
 
     const Chip8Rom Font = DefineRom("Font", 80);
     
@@ -43,10 +43,11 @@ int main(void)
         DefineRom( "SC Test", 673 ),
         DefineRom( "Maze",    35),
         DefineRom( "Pong",    247),
-        DefineRom( "Simple",  86),
         DefineRom( "JXO",     83),
         DefineRom( "Space",   1302),
-        DefineRom( "Trip8",   3204)
+        DefineRom( "Sierp",   522),
+        DefineRom( "Zero",   145),
+        DefineRom( "Particle",   354),
     };
     
     #if defined(GLCD)
